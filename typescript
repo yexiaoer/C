@@ -1,0 +1,279 @@
+Script started on Tue May 19 20:43:37 2015
+[?1034hbash-3.2$ ls
+AndroidStudioProjects	Public			p.c
+Applications		Trovi			person.c
+Desktop			Untitled.txt		print.in
+Documents		VirtualBox VMs		print.on
+Downloads		a.out			r.c
+Library			double.c		showxbits
+Movies			e.c			t3.c
+Music			f.c			test3.c
+Pictures		hello			typescript
+bash-3.2$ cd Desktop/
+bash-3.2$ ls
+Android Studio.app	CarP			LinkList
+Arduino.app		CarProject2		OmniDiskSweeper.app
+BG			E			Sublime Text 2.app
+BlueJ.app		ENGIN			hw5_wenxiu_ye
+Book			English			ll
+CS			GridWorldCodeBlueJ
+CarDroid		KK
+bash-3.2$ cd hw5_wenxiu_ye/
+bash-3.2$ ls
+a.out			test_word_count.c	word_count.h
+in			war_and_peace.txt
+out			word_count.c
+bash-3.2$ gcc w[Ktest_word_count.c word_count.c
+bash-3.2$ ./[K[Kcat test_word_count.c word_count.c word_count.h
+/*
+Programmer: Wenxiu Ye
+Data: 5/20/2015
+Name of the file: test_word_count.c
+Bytecount: 1,187 bytes
+*/
+
+#include <stdio.h>
+#include "word_count.h"
+#include <stdlib.h>
+#define MAX 100
+
+int main(int argc, char *argv[])
+{
+	while(1)
+	{
+		if(argc != 3)
+		{
+			printf("Wrong command, try again \n");
+			break;
+		}
+		else if (argc == 3 && fopen(argv[1], "r") != NULL  && fopen(argv[2], "w") != NULL)
+		{
+			FILE *in;
+			FILE *out;
+			in = fopen(argv[1], "r");
+			out = fopen(argv[2], "w");
+			struct Node *wordCount = NULL;
+			char line[MAX];
+			char word[MAX];
+			int lineNum = 1 ;				
+			int pos;
+			int len;
+			while (fgets(line, MAX-1, in) != NULL)
+			{
+				pos = 1;
+				len = 0;
+				printf("line %d : %s", lineNum, line);
+				while(sscanf(line, "%s ", word) == 1)
+				{
+					int count;
+					len += getLen(word);
+					len+=1; 
+					wordCount = add(wordCount, word, lineNum, pos);
+					for(count = 0; count < len; count++)
+						line[count] = ' ';
+					pos++;
+				}
+				lineNum++;
+			}
+			printf("\n");
+			print(wordCount);
+			putFile(wordCount, out);
+			fclose(in);
+			fclose(out);
+			freeM(wordCount);
+			break;
+		}
+		else
+		{
+			printf("Wrong File Name, try again \n");
+			break;
+		}
+	}
+} /*
+Programmer: Wenxiu Ye
+Data: 5/13/2015
+Name of the file: word_count.c
+Bytecount: 2,833 bytes
+*/
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+typedef struct LocationInfo
+{
+	int line;
+	int pos;
+	struct LocationInfo *next;
+}Loc;
+typedef struct Node
+{
+	char *word;
+	int count;
+	struct LocationInfo *info;
+	struct Node *next;
+} Node;
+
+int getLen(char str[])
+{
+    int count = 0;
+        while(str[count] != '\0')
+                count++;
+        return count;
+}
+int duplicate(Node *list, char *word)
+{
+	if (list == NULL)
+		return -1;
+	Node *temp = list;
+	while(temp != NULL)
+	{
+		if (strcmp(word, temp->word) == 0)
+			return 0;
+		temp = temp->next;
+	}
+	return -1;
+}
+Loc *addLoc(Loc *list, int lineNum, int posNum)
+{
+	Loc *newPos = (Loc *) malloc(sizeof(Loc));
+	newPos->line = lineNum;
+	newPos->pos = posNum;
+	newPos->next = NULL;
+	if(list == NULL)
+		return newPos;
+	Loc *temp = list;
+	while(temp->next != NULL)
+	{
+		temp = temp->next;
+	}
+	temp->next = newPos;
+	return list;
+}
+Node *add(Node *list, char *word, int lineNum, int posNum)
+{
+	Node *node = (Node *) malloc(sizeof(Node));
+	node->word  = (char *) malloc(strlen(word) + 1);
+	strcpy(node->word, word);
+
+	node->count = 1;
+	node->info = NULL;
+	node->info = addLoc(node->info, lineNum, posNum);
+	node->next = NULL;
+
+	Node *last = list;
+	if(list == NULL)
+		return node;
+	else
+	{
+		int dup = duplicate(list, word);
+		if(dup != 0){
+			while(last->next != NULL)
+				last = last->next;
+			last->next = node;
+		}
+		else
+		{
+			Node *temp = list;
+			while(temp != NULL)
+			{
+				if (strcmp(word, temp->word) == 0)
+				{
+					temp->count++;
+					temp->info = addLoc(temp->info, lineNum, posNum);
+				}
+				temp = temp->next;
+			}
+		}
+	}
+	return list;
+}
+void putFile(Node *list, FILE *f)
+{
+	if (list == NULL)
+		return;
+	Node *temp = list;
+	Loc *loc;
+	while(temp != NULL)
+	{
+		fputs(temp->word, f);
+  		fputs(",", f);
+  		fprintf(f, "%d, ", temp->count);
+
+		loc = temp->info;
+		int count = 0;
+		while(loc != NULL)
+		{
+			if(count != 0)
+				fputs(",", f);
+			fprintf(f, "(%d,", loc->line);
+			fprintf(f, " %d)", loc->pos);
+			loc = loc->next;
+			count = 1;
+		}
+		fputs(" \n", f);
+		temp = temp->next;
+	}
+}
+void freeM(Node *list)
+{
+	Node *temp = list;
+	while(temp != NULL)
+	{
+		free(temp->word);
+		Loc *temp1 = temp->info;
+		while(temp1 != NULL)
+		{
+			Loc *temp2 = temp1->next;
+			free(temp1);
+			temp1 = temp2;
+		}
+		temp = temp->next;
+	}
+}
+void print(Node *list)
+{
+	if (list == NULL)
+		return;
+	Node *temp = list;
+	Loc *loc;
+	int num = 1;
+	while(temp != NULL)
+	{
+		printf("Word %d : %s, count:%d, ", num, temp->word, temp->count);
+		loc = temp->info;
+		int count = 0;
+		while(loc != NULL)
+		{
+			if(count != 0)
+				printf(",");
+			printf("(%d, %d)",loc->line, loc->pos );
+			loc = loc->next;
+			count = 1;
+		}
+		printf("\n");
+		temp = temp->next;
+		num++;
+	}
+	printf("\n");
+}/*
+Programmer: Wenxiu Ye
+Data: 5/13/2015
+Name of the file: word_count.h
+Bytecount: 454 bytes
+*/
+struct LocationInfo;
+struct Node;
+int getLen(char str[]);
+struct Node *add(struct Node *list, char *word, int lineNum, int posNum);
+struct LocationInfo *Loc(struct LocationInfo *list, int lineNum, int posNum);
+int duplicate(struct Node list, char *word);
+void putFile(struct Node *list, FILE *f);
+void freeM(struct Node *list);
+void print(struct Node *list);bash-3.2$ quit
+bash: quit: command not found
+bash-3.2$ exist
+bash: exist: command not found
+bash-3.2$ exit
+exit
+
+Script done on Tue May 19 20:44:39 2015
